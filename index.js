@@ -77,6 +77,7 @@ async function run() {
       }
     });
 
+
     app.get("/tutors", async (req, res) => {
       const email = req.query.email;
       const limit = req.query.limit;
@@ -93,7 +94,8 @@ async function run() {
       res.send(result);
     });
 
-      app.get("/tutors/:id", verifyToken, async (req, res) => {
+
+    app.get("/tutors/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
 
       if (!ObjectId.isValid(id)) {
@@ -107,7 +109,8 @@ async function run() {
       res.send(result);
     });
 
-       app.patch("/tutors/:id", verifyToken, async (req, res) => {
+  
+    app.patch("/tutors/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
 
       const updateData = {
@@ -137,9 +140,113 @@ async function run() {
       res.send(result);
     });
     
+    app.post("/booking", verifyToken, async (req, res) => {
+      try {
+        const booking = req.body;
+
+        const tutor = await tutorsCollection.findOne({
+          _id: new ObjectId(booking.tutorId),
+        });
+
+        if (!tutor) {
+          return res.status(404).send({
+            success: false,
+            message: "Tutor not found",
+          });
+        }
+
+        const totalSlot = Number(tutor.totalSlot);
+
+        if (totalSlot <= 0) {
+          return res.status(400).send({
+            success: false,
+            message: "No available slots left",
+          });
+        }
+
+        const result = await bookingCollection.insertOne({
+          ...booking,
+          status: "confirmed",
+        });
+
+        await tutorsCollection.updateOne(
+          { _id: new ObjectId(booking.tutorId) },
+          { $inc: { totalSlot: -1 } }
+        );
+
+        res.send({
+          success: true,
+          insertedId: result.insertedId,
+        });
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
 
 
+    app.get("/booking", verifyToken, async (req, res) => {
+      const email = req.query.email;
+      const query = email ? { studentEmail: email } : {};
 
+      const result = await bookingCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.patch("/booking/:id", verifyToken, async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({
+            success: false,
+            message: "Invalid ID",
+          });
+        }
+
+        const booking = await bookingCollection.findOne({
+          _id: new ObjectId(id),
+        });
+
+        if (!booking) {
+          return res.status(404).send({
+            success: false,
+            message: "Booking not found",
+          });
+        }
+
+        if (booking.status === "cancelled") {
+          return res.status(400).send({
+            success: false,
+            message: "Already cancelled",
+          });
+        }
+
+        await bookingCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status: "cancelled" } }
+        );
+
+        if (booking.tutorId && ObjectId.isValid(booking.tutorId)) {
+          await tutorsCollection.updateOne(
+            { _id: new ObjectId(booking.tutorId) },
+            { $inc: { totalSlot: 1 } }
+          );
+        }
+
+        res.send({
+          success: true,
+          message: "Booking cancelled successfully",
+        });
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
 
     console.log("✅ MongoDB connected successfully");
   } catch (error) {
