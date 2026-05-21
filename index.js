@@ -99,6 +99,18 @@ async function run() {
     });
 
 
+    app.delete("/tutors/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+
+      const result = await tutorsCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+      res.send(result);
+    });
+    
+
+
 
 
     console.log("✅ MongoDB connected successfully");
