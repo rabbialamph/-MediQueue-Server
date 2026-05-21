@@ -79,6 +79,26 @@ async function run() {
       res.send(result);
     });
 
+       app.patch("/tutors/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+
+      const updateData = {
+        ...req.body,
+      };
+
+      if (updateData.totalSlot) {
+        updateData.totalSlot = Number(updateData.totalSlot);
+      }
+
+      const result = await tutorsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updateData }
+      );
+
+      res.send(result);
+    });
+
+
 
 
     console.log("✅ MongoDB connected successfully");
