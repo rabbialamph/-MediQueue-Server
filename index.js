@@ -65,6 +65,20 @@ async function run() {
       res.send(result);
     });
 
+      app.get("/tutors/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid ID" });
+      }
+
+      const result = await tutorsCollection.findOne({
+        _id: new ObjectId(id),
+      });
+
+      res.send(result);
+    });
+
 
 
     console.log("✅ MongoDB connected successfully");
