@@ -49,6 +49,22 @@ async function run() {
       }
     });
 
+    app.get("/tutors", async (req, res) => {
+      const email = req.query.email;
+      const limit = req.query.limit;
+
+      const query = email ? { ownerEmail: email } : {};
+
+      let cursor = tutorsCollection.find(query);
+
+      if (limit) {
+        cursor = cursor.limit(parseInt(limit));
+      }
+
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
 
 
     console.log("✅ MongoDB connected successfully");
