@@ -53,7 +53,7 @@ const verifyToken = async (req, res, next) => {
 
 async function run() {
   try {
-    // await client.connect();
+    await client.connect();
 
     const db = client.db("MediQueue");
     const tutorsCollection = db.collection("tutors");
@@ -78,21 +78,39 @@ async function run() {
     });
 
 
-    app.get("/tutors", async (req, res) => {
-      const email = req.query.email;
-      const limit = req.query.limit;
+app.get("/tutors", async (req, res) => {
+  const email = req.query.email;
+  const search = req.query.search;
+  const startDate = req.query.startDate;
+  const limit = req.query.limit;
+  const query = {};
 
-      const query = email ? { ownerEmail: email } : {};
+  if (email) {
+    query.ownerEmail = email;
+  }
 
-      let cursor = tutorsCollection.find(query);
+  if (search) {
+    query.tutorName = {
+      $regex: search,
+      $options: "i",
+    };
+  }
 
-      if (limit) {
-        cursor = cursor.limit(parseInt(limit));
-      }
+  if (startDate) {
+    query.startDate = {
+      $gte: startDate,
+    };
+  }
+  let cursor = tutorsCollection.find(query);
 
-      const result = await cursor.toArray();
-      res.send(result);
-    });
+  if (limit) {
+    cursor = cursor.limit(parseInt(limit));
+  }
+  const result = await cursor.toArray();
+  res.send(result);
+});
+
+
 
 
     app.get("/tutors/:id", verifyToken, async (req, res) => {
@@ -248,16 +266,16 @@ async function run() {
       }
     });
 
-    console.log("✅ MongoDB connected successfully");
+    console.log("MongoDB connected successfully");
   } catch (error) {
-    console.error("❌ Server error:", error);
+    console.error(" Server error:", error);
   }
 }
 
 run();
 
 app.get("/", (req, res) => {
-  res.send("MediQueue Server Running 🚀");
+  res.send("MediQueue Server Running");
 });
 
 app.listen(port, () => {
